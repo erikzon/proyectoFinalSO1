@@ -11,7 +11,6 @@ import java.util.TimerTask;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
-
 import proyectofinalso1.proceso;
 
 /**
@@ -31,6 +30,9 @@ public class VentanaAplicacion extends javax.swing.JFrame {
     public static int contadorPID = 1;
     public static ArrayList<proceso> procesosArr = new ArrayList();
     public static ArrayList<memoriaEstructura> memoriaArr = new ArrayList();
+    public static ArrayList<memoriaEstructura> memoriaVirtualArr = new ArrayList();
+    public static ArrayList<memoriaEstructura> paginasArr = new ArrayList();
+    public static ArrayList<memoriaEstructura> tablaPaginasArr = new ArrayList();
     public static boolean semaforo = true;
 
     public void cambiarSemaforo() {
@@ -68,13 +70,74 @@ public class VentanaAplicacion extends javax.swing.JFrame {
         }
     }
 
+    public void ActualizarTablaMemoriaVirtual() {
+        DefaultTableModel model = (DefaultTableModel) jTableMemoriaVirtual.getModel();
+        model.setRowCount(0);
+        for (int i = 0; i < memoriaVirtualArr.size(); i++) {
+            model.addRow(new Object[]{
+                memoriaVirtualArr.get(i).getListaProcesosInternos(),
+                memoriaVirtualArr.get(i).getUID(),
+                memoriaVirtualArr.get(i).getUso(),});
+        }
+        DefaultTableModel model2 = (DefaultTableModel) jTableTablaDePaginas.getModel();
+        model2.setRowCount(0);
+        for (int i = 0; i < memoriaVirtualArr.size(); i++) {
+            model2.addRow(new Object[]{
+                i+1,
+                memoriaVirtualArr.get(i).getUID(),});
+        }
+        DefaultTableModel model3 = (DefaultTableModel) jTablePaginas.getModel();
+        model3.setRowCount(0);
+        for (int i = 0; i < memoriaVirtualArr.size(); i++) {
+            model3.addRow(new Object[]{
+                memoriaVirtualArr.get(i).getListaProcesosInternos(),
+                i+1,
+                memoriaVirtualArr.get(i).getUso(),});
+        }
+    }
+
+    public void ActualizarTablaPaginas() {
+        DefaultTableModel model = (DefaultTableModel) jTablePaginas.getModel();
+        model.setRowCount(0);
+        for (int i = 0; i < paginasArr.size(); i++) {
+            model.addRow(new Object[]{
+                paginasArr.get(i).getListaProcesosInternos(),
+                i,
+                paginasArr.get(i).getUso(),});
+        }
+    }
+
+    public void ActualizarTabladeTabladePaginas() {
+        DefaultTableModel model = (DefaultTableModel) jTableTablaDePaginas.getModel();
+        model.setRowCount(0);
+        for (int i = 0; i < tablaPaginasArr.size(); i++) {
+            model.addRow(new Object[]{
+                i,
+                tablaPaginasArr.get(i).getUID(),});
+        }
+    }
+
+    public void ActualizarTODO() {
+        ActualizarTabla();
+        ActualizarTablaMemoria();
+        ActualizarTablaMemoriaVirtual();
+        //ActualizarTablaPaginas();
+        //ActualizarTabladeTabladePaginas();
+    }
+
     void Asignar(proceso proceso) {
         try {
             if (memoriaArr.size() < 1 && proceso.getMemoria() <= 200000) {
                 memoriaEstructura aux = new memoriaEstructura();
                 aux.agregarProcesoAMemoria(proceso);
                 aux.setUID(proceso.getUID());
-                memoriaArr.add(aux);
+
+                if (memoriaArr.size() > 10) {
+                    JOptionPane.showMessageDialog(new JFrame(), "Memoria principal Llena, asignacion a memoria Virtual");
+                    memoriaVirtualArr.add(aux);
+                } else {
+                    memoriaArr.add(aux);
+                }
             } else if (proceso.getMemoria() > 200000) {
                 proceso copiaproceso_uno = proceso.copia(proceso);
                 proceso copiaproceso_dos = proceso.copia(proceso);
@@ -84,25 +147,45 @@ public class VentanaAplicacion extends javax.swing.JFrame {
                 memoriaEstructura aux = new memoriaEstructura();
                 aux.agregarProcesoAMemoria(copiaproceso_dos);
                 aux.setUID(copiaproceso_dos.getUID());
-                memoriaArr.add(aux);
-                memoriaArr.get(memoriaArr.size() - 1).setearUltimaMemoria();
+
+                if (memoriaArr.size() > 10) {
+                    JOptionPane.showMessageDialog(new JFrame(), "Memoria principal Llena, asignacion a memoria Virtual");
+                    memoriaVirtualArr.add(aux);
+                    memoriaVirtualArr.get(memoriaVirtualArr.size() - 1).setearUltimaMemoria();
+                } else {
+                    memoriaArr.add(aux);
+                    memoriaArr.get(memoriaArr.size() - 1).setearUltimaMemoria();
+                }
 
                 memoriaEstructura aux2 = new memoriaEstructura();
                 aux2.agregarProcesoAMemoria(copiaproceso_uno);
                 aux2.setUID(copiaproceso_uno.getUID());
-                memoriaArr.add(aux2);
+                if (memoriaArr.size() > 10) {
+                    JOptionPane.showMessageDialog(new JFrame(), "Memoria principal Llena, asignacion a memoria Virtual");
+                    memoriaVirtualArr.add(aux2);
+                } else {
+                    memoriaArr.add(aux2);
+                }
+
             } else if (memoriaArr.get(memoriaArr.size() - 1).getDisponible() - proceso.getMemoria() > 0) {
                 memoriaArr.get(memoriaArr.size() - 1).agregarProcesoAMemoria(proceso);
             } else {
                 memoriaEstructura aux = new memoriaEstructura();
                 aux.agregarProcesoAMemoria(proceso);
                 aux.setUID(proceso.getUID());
-                memoriaArr.add(aux);
+
+                if (memoriaArr.size() > 10) {
+                    JOptionPane.showMessageDialog(new JFrame(), "Memoria principal Llena, asignacion a memoria Virtual");
+                    memoriaVirtualArr.add(aux);
+                    ActualizarTODO();
+                } else {
+                    memoriaArr.add(aux);
+                }
             }
         } catch (Exception e) {
             System.out.println("Error al asignar");
         }
-        ActualizarTablaMemoria();
+        ActualizarTODO();
     }
 
     void arrancarPlanificador() {
@@ -117,7 +200,7 @@ public class VentanaAplicacion extends javax.swing.JFrame {
                                 procesosArr.get(i).setEstado("Asignado");
                                 negarSemaforo();
                                 Asignar(procesosArr.get(i));
-                                ActualizarTabla();
+                                ActualizarTODO();
                             }
                         }
                     }
@@ -132,7 +215,6 @@ public class VentanaAplicacion extends javax.swing.JFrame {
                                             memoriaArr.get(i).procesosInternos.remove(j);
                                         }
                                     }
-                                    //memoriaArr.get(i).procesosInternos.remove(memoriaArr.get(i).procesosInternos.indexOf(procesosArr.get(0).getUID()));//
                                     if (memoriaArr.get(i).getDisponible() > 199999) { //
                                         memoriaArr.remove(i);
                                     }
@@ -147,7 +229,6 @@ public class VentanaAplicacion extends javax.swing.JFrame {
                                             memoriaArr.get(i).procesosInternos.remove(j);
                                         }
                                     }
-                                    //memoriaArr.get(i).procesosInternos.remove(memoriaArr.get(i).procesosInternos.indexOf(procesosArr.get(0).getUID()));//
                                     if (memoriaArr.get(i).getDisponible() > 199999) { //
                                         memoriaArr.remove(i);
                                     }
@@ -158,12 +239,17 @@ public class VentanaAplicacion extends javax.swing.JFrame {
                             procesosArr.remove(0);
                         }
                     }
+                    if (memoriaArr.size() < 10 && memoriaVirtualArr.size() > 0) {
+                        memoriaArr.add(memoriaVirtualArr.get(0));
+                        memoriaVirtualArr.remove(0);
+                        //paginasArr.remove(0);
+                        //tablaPaginasArr.remove(0);
+                    }
                 } catch (Exception e) {
                     System.out.println("error en el planificador!");
                     System.out.println(e);
                 } finally {
-                    ActualizarTabla();
-                    ActualizarTablaMemoria();
+                    ActualizarTODO();
                     cambiarSemaforo();
                 }
             }
@@ -501,7 +587,7 @@ public class VentanaAplicacion extends javax.swing.JFrame {
                 .addGroup(jPanel6Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                     .addComponent(jScrollPane4, javax.swing.GroupLayout.DEFAULT_SIZE, 228, Short.MAX_VALUE)
                     .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
-                    .addComponent(jScrollPane5, javax.swing.GroupLayout.PREFERRED_SIZE, 52, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(jScrollPane5, javax.swing.GroupLayout.PREFERRED_SIZE, 141, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addContainerGap())
         );
 
@@ -578,7 +664,18 @@ public class VentanaAplicacion extends javax.swing.JFrame {
         quantum = (int) Math.floor(Math.random() * (max - min + 1) + min);
 
         jLabelQuantum.setText(Integer.toString(quantum));
-        ActualizarTabla();
+        System.out.println("INICIE");
+        //AÑADIR PROCESOS DE PRUEBA PARA NO PERDER EL TIEMPO
+        /*for (int i = 0; i < 10; i++) {
+            proceso aux = new proceso();
+            aux.setNombre("test.exe");
+            aux.setUID(contadorPID++);
+            aux.setEstado("en espera");
+            aux.setMemoria(400000);
+            procesosArr.add(aux);
+            ActualizarTODO();
+        }*/
+        
         arrancarPlanificador();
     }//GEN-LAST:event_formWindowOpened
 
@@ -594,8 +691,22 @@ public class VentanaAplicacion extends javax.swing.JFrame {
                 aux.setUID(contadorPID++);
                 aux.setEstado("en espera");
                 aux.setMemoria(Integer.parseInt(jTextFieldMemoria.getText()));
+                /*if (memoriaArr.size() > 10) {
+                    JOptionPane.showMessageDialog(new JFrame(), "Memoria principal Llena, asignacion a memoria Virtual");
+
+                    memoriaEstructura auxEstruc = new memoriaEstructura();
+                    auxEstruc.agregarProcesoAMemoria(aux);
+                    auxEstruc.setUID(aux.getUID());
+                    memoriaVirtualArr.add(auxEstruc);
+
+                    ActualizarTODO();
+                    jTextFieldMemoria.setText("0");
+                    jTextFieldNombre.setText("");
+                } else {
+
+                }*/
                 procesosArr.add(aux);
-                ActualizarTabla();
+                ActualizarTODO();
                 jTextFieldMemoria.setText("0");
                 jTextFieldNombre.setText("");
             } else {
@@ -605,8 +716,6 @@ public class VentanaAplicacion extends javax.swing.JFrame {
             JOptionPane.showMessageDialog(new JFrame(), "El proceso debe tener un tamaño mayor a 0kb y menor a 400,000kb");
             jTextFieldMemoria.setText("0");
         }
-
-
     }//GEN-LAST:event_jButtonAñadirActionPerformed
 
     /**
